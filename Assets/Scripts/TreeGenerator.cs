@@ -23,13 +23,40 @@ public class TreeGenerator : MonoBehaviour
         }
     }
 
+    public int numAttractors = 100;
+    public float sphereSize = 5f;
+
     float timer = 0f;
     float updateInterval = .1f;
     List<Branch> branches = new List<Branch>();
     float branchLength = 1f;
     int steps = 10;
-    int currentStep = 5;
-    int initialBranches = 5;
+    int currentStep = 0;
+    int initialBranches = 0;
+    List<Vector3> attractors = new List<Vector3>();
+
+    void GenerateAttractors()
+    {
+        Debug.Log(numAttractors);
+        for (var i = 0; i < numAttractors; i++)
+        {
+            float alpha = Random.Range(0, Mathf.PI);
+            float theta = Random.Range(0, 2 * Mathf.PI);
+            float d = Random.Range(0, sphereSize);
+            Vector3 v = new Vector3(
+                Mathf.Cos(theta) * Mathf.Sin(alpha),
+                Mathf.Sin(theta) * Mathf.Sin(alpha),
+                Mathf.Cos(alpha)
+            );
+            v *= d;
+            attractors.Add(v);
+            // DEBUG
+            GameObject attr = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            attr.transform.position = v;
+            attr.GetComponent<MeshRenderer>().material.color = Color.blue;
+            attr.transform.localScale = new Vector3(.1f, .1f, .1f);
+        }
+    }
 
     void Grow()
     {
@@ -42,6 +69,7 @@ public class TreeGenerator : MonoBehaviour
         );
         branches.Add(branch);
         Draw(branch);
+        currentStep++;
     }
 
     void Draw(Branch b)
@@ -59,7 +87,13 @@ public class TreeGenerator : MonoBehaviour
 
     void Start()
     {
-        var firstBranch = new Branch(Vector3.zero, Vector3.up, Vector3.up, null);
+        GenerateAttractors();
+        var firstBranch = new Branch(
+            new Vector3(0, -sphereSize, 0),
+            new Vector3(0, -sphereSize, 0) + Vector3.up,
+            Vector3.up,
+            null
+        );
         branches.Add(firstBranch);
         Draw(firstBranch);
         for (int i = 0; i < initialBranches; i++)
@@ -76,7 +110,6 @@ public class TreeGenerator : MonoBehaviour
         if (timer >= updateInterval)
         {
             timer = 0f;
-            currentStep++;
             Grow();
         }
     }
