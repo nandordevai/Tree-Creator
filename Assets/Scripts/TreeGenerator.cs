@@ -28,7 +28,8 @@ public class TreeGenerator : MonoBehaviour
     List<Branch> branches = new List<Branch>();
     float branchLength = 1f;
     int steps = 10;
-    int currentStep = 0;
+    int currentStep = 5;
+    int initialBranches = 5;
 
     void Grow()
     {
@@ -48,9 +49,12 @@ public class TreeGenerator : MonoBehaviour
         GameObject node = GameObject.CreatePrimitive(PrimitiveType.Sphere);
         node.transform.position = b.start;
         node.transform.localScale = new Vector3(.2f, .2f, .2f);
-        GameObject connector = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-        connector.transform.position = b.start + new Vector3(0, branchLength / 2, 0);
-        connector.transform.localScale = new Vector3(.1f, .5f, .1f);
+        if (branches.Count > 1)
+        {
+            GameObject connector = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            connector.transform.position = b.start + new Vector3(0, -branchLength / 2, 0);
+            connector.transform.localScale = new Vector3(.1f, .5f, .1f);
+        }
     }
 
     void Start()
@@ -58,12 +62,18 @@ public class TreeGenerator : MonoBehaviour
         var firstBranch = new Branch(Vector3.zero, Vector3.up, Vector3.up, null);
         branches.Add(firstBranch);
         Draw(firstBranch);
+        for (int i = 0; i < initialBranches; i++)
+        {
+            Grow();
+        }
     }
 
     void Update()
     {
+        if (currentStep >= steps) enabled = false;
+
         timer += Time.deltaTime;
-        if (timer >= updateInterval && currentStep < steps)
+        if (timer >= updateInterval)
         {
             timer = 0f;
             currentStep++;
