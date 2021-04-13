@@ -164,7 +164,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5c2785f4611cc4337b90764d0081752f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  numAttractors: 100
+  numAttractors: 400
   sphereSize: 5
 --- !u!1 &705507993
 GameObject:

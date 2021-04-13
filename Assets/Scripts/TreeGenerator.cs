@@ -23,11 +23,11 @@ public class TreeGenerator : MonoBehaviour
         }
     }
 
-    public int numAttractors = 100;
-    public float sphereSize = 5f;
-
+    int numAttractors = 400;
+    float sphereSize = 5f;
+    float attractionDistance = .8f;
     float timer = 0f;
-    float updateInterval = .1f;
+    float updateInterval = 1f;
     List<Branch> branches = new List<Branch>();
     float branchLength = 1f;
     int steps = 10;
@@ -37,7 +37,7 @@ public class TreeGenerator : MonoBehaviour
 
     void GenerateAttractors()
     {
-        Debug.Log(numAttractors);
+        var container = GameObject.Find("Attractors");
         for (var i = 0; i < numAttractors; i++)
         {
             float alpha = Random.Range(0, Mathf.PI);
@@ -55,16 +55,40 @@ public class TreeGenerator : MonoBehaviour
             attr.transform.position = v;
             attr.GetComponent<MeshRenderer>().material.color = Color.blue;
             attr.transform.localScale = new Vector3(.1f, .1f, .1f);
+            attr.transform.parent = container.transform;
         }
     }
 
     void Grow()
     {
         var parent = branches.Last();
+        var activeAttractors = new List<Vector3>();
+        foreach (var a in attractors)
+        {
+            if (Vector3.Distance(a, parent.end) < attractionDistance)
+            {
+                activeAttractors.Add(a);
+            }
+        }
+        Vector3 v = Vector3.zero;
+        if (activeAttractors.Count > 0)
+        {
+            // The direction of the child of branch can be computed as the normalized sum of the normalized directions between the attraction points and the end of branch.
+            foreach (var attr in activeAttractors)
+            {
+                v += (attr - parent.end);
+            }
+            v /= activeAttractors.Count;
+            v.Normalize();
+        }
+        else
+        {
+            v = parent.direction;
+        }
         var branch = new Branch(
             parent.end,
-            parent.end + new Vector3(0, branchLength, 0),
-            Vector3.up,
+            parent.end + v * branchLength,
+            v,
             parent
         );
         branches.Add(branch);
@@ -80,17 +104,25 @@ public class TreeGenerator : MonoBehaviour
         if (branches.Count > 1)
         {
             GameObject connector = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            connector.transform.position = b.start + new Vector3(0, -branchLength / 2, 0);
+            // connector.transform.position = Vector3.Lerp(start, end, .5f);
+            connector.transform.position = Vector3.Lerp(
+                b.start,
+                b.end, //b.start + new Vector3(0, -branchLength / 2, 0),
+                .5f
+            );
             connector.transform.localScale = new Vector3(.1f, .5f, .1f);
+            connector.transform.LookAt(b.end);
+            connector.transform.Rotate(90, 0, 0, Space.Self);
         }
     }
 
     void Start()
     {
         GenerateAttractors();
+        var start = new Vector3(0, -sphereSize + 2, 0);
         var firstBranch = new Branch(
-            new Vector3(0, -sphereSize, 0),
-            new Vector3(0, -sphereSize, 0) + Vector3.up,
+            start,
+            start + Vector3.up,
             Vector3.up,
             null
         );
