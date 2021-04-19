@@ -14,6 +14,7 @@ public class TreeGenerator : MonoBehaviour
         public List<Branch> children = new List<Branch>();
         public List<Vector3> attractors = new List<Vector3>();
 
+
         public Branch(Vector3 start, Vector3 end, Vector3 direction, Branch parent)
         {
             this.start = start;
@@ -29,91 +30,69 @@ public class TreeGenerator : MonoBehaviour
     float timer = 0f;
     float updateInterval = 1f;
     List<Branch> branches = new List<Branch>();
-    float branchLength = 1f;
-    int steps = 10;
+    float branchLength = .2f;
+    int steps = 20;
     int currentStep = 0;
     int initialBranches = 0;
     List<Vector3> attractors = new List<Vector3>();
+    List<int> activeAttractors = new List<int>();
+    float randomGrowth = .1f;
 
     void GenerateAttractors()
     {
         var container = GameObject.Find("Attractors");
         for (var i = 0; i < numAttractors; i++)
         {
-            float alpha = Random.Range(0, Mathf.PI);
-            float theta = Random.Range(0, 2 * Mathf.PI);
+            Vector3 v = RandomVector();
             float d = Random.Range(0, sphereSize);
-            Vector3 v = new Vector3(
-                Mathf.Cos(theta) * Mathf.Sin(alpha),
-                Mathf.Sin(theta) * Mathf.Sin(alpha),
-                Mathf.Cos(alpha)
-            );
             v *= d;
             attractors.Add(v);
-            // DEBUG
-            GameObject attr = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            attr.transform.position = v;
-            attr.GetComponent<MeshRenderer>().material.color = Color.blue;
-            attr.transform.localScale = new Vector3(.1f, .1f, .1f);
-            attr.transform.parent = container.transform;
         }
+    }
+
+    Vector3 RandomVector()
+    {
+        float alpha = Random.Range(0, Mathf.PI);
+        float theta = Random.Range(0, Mathf.PI * 2f);
+        Vector3 v = new Vector3(
+            Mathf.Cos(theta) * Mathf.Sin(alpha),
+            Mathf.Sin(theta) * Mathf.Sin(alpha),
+            Mathf.Cos(alpha)
+        );
+        return v;
     }
 
     void Grow()
     {
+        Vector3 v = Vector3.up;
         var parent = branches.Last();
-        var activeAttractors = new List<Vector3>();
-        foreach (var a in attractors)
+        activeAttractors.Clear();
+        for (int i = 0; i < attractors.Count; i++)
         {
-            if (Vector3.Distance(a, parent.end) < attractionDistance)
+            if (Vector3.Distance(attractors[i], parent.end + v * branchLength) < attractionDistance)
             {
-                activeAttractors.Add(a);
+                activeAttractors.Add(i);
             }
         }
-        Vector3 v = Vector3.zero;
         if (activeAttractors.Count > 0)
         {
             // The direction of the child of branch can be computed as the normalized sum of the normalized directions between the attraction points and the end of branch.
-            foreach (var attr in activeAttractors)
+            foreach (var a in activeAttractors)
             {
-                v += (attr - parent.end);
+                v += (attractors[a] - parent.end);
             }
-            v /= activeAttractors.Count;
+            v += RandomVector() * randomGrowth;
+            v /= activeAttractors.Count + 1;
             v.Normalize();
         }
-        else
-        {
-            v = parent.direction;
-        }
         var branch = new Branch(
-            parent.end,
-            parent.end + v * branchLength,
-            v,
+            start: parent.end,
+            end: parent.end + v * branchLength,
+            direction: v,
             parent
         );
         branches.Add(branch);
-        Draw(branch);
         currentStep++;
-    }
-
-    void Draw(Branch b)
-    {
-        GameObject node = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-        node.transform.position = b.start;
-        node.transform.localScale = new Vector3(.2f, .2f, .2f);
-        if (branches.Count > 1)
-        {
-            GameObject connector = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            // connector.transform.position = Vector3.Lerp(start, end, .5f);
-            connector.transform.position = Vector3.Lerp(
-                b.start,
-                b.end, //b.start + new Vector3(0, -branchLength / 2, 0),
-                .5f
-            );
-            connector.transform.localScale = new Vector3(.1f, .5f, .1f);
-            connector.transform.LookAt(b.end);
-            connector.transform.Rotate(90, 0, 0, Space.Self);
-        }
     }
 
     void Start()
@@ -122,12 +101,11 @@ public class TreeGenerator : MonoBehaviour
         var start = new Vector3(0, -sphereSize + 2, 0);
         var firstBranch = new Branch(
             start,
-            start + Vector3.up,
+            start + Vector3.up * branchLength,
             Vector3.up,
             null
         );
         branches.Add(firstBranch);
-        Draw(firstBranch);
         for (int i = 0; i < initialBranches; i++)
         {
             Grow();
@@ -143,6 +121,38 @@ public class TreeGenerator : MonoBehaviour
         {
             timer = 0f;
             Grow();
+        }
+    }
+
+    void OnDrawGizmos()
+    {
+        if (attractors == null)
+        {
+            return;
+        }
+        for (int i = 0; i < attractors.Count; i++)
+        {
+            if (activeAttractors.Contains(i))
+            {
+                Gizmos.color = Color.yellow;
+            }
+            else
+            {
+                Gizmos.color = Color.red;
+            }
+            Gizmos.DrawSphere(attractors[i], 0.1f);
+        }
+
+        // Gizmos.color = new Color(0.4f, 0.4f, 0.4f, 0.4f);
+        // Gizmos.DrawSphere(extremities[0].end, attractionRange);
+
+        foreach (Branch b in branches)
+        {
+            Gizmos.color = Color.green;
+            Gizmos.DrawLine(b.start, b.end);
+            Gizmos.color = Color.magenta;
+            Gizmos.DrawSphere(b.end, 0.05f);
+            Gizmos.DrawSphere(b.start, 0.05f);
         }
     }
 }
