@@ -30,6 +30,7 @@ public class TreeGenerator : MonoBehaviour
     float timer = 0f;
     float updateInterval = 1f;
     List<Branch> branches = new List<Branch>();
+    List<Branch> extremities = new List<Branch>();
     float branchLength = .2f;
     int steps = 20;
     int currentStep = 0;
@@ -37,6 +38,7 @@ public class TreeGenerator : MonoBehaviour
     List<Vector3> attractors = new List<Vector3>();
     List<int> activeAttractors = new List<int>();
     float randomGrowth = .1f;
+    float killDistance = .4f;
 
     void GenerateAttractors()
     {
@@ -44,7 +46,9 @@ public class TreeGenerator : MonoBehaviour
         for (var i = 0; i < numAttractors; i++)
         {
             Vector3 v = RandomVector();
-            float d = Random.Range(0, sphereSize);
+            float d = Random.Range(0, 1f);
+            d = Mathf.Pow(Mathf.Sin(d * Mathf.PI / 2f), 0.8f);
+            d *= sphereSize;
             v *= d;
             attractors.Add(v);
         }
@@ -62,54 +66,93 @@ public class TreeGenerator : MonoBehaviour
         return v;
     }
 
-    void Grow()
+    void AssociateAttractorsWithBranches()
     {
-        Vector3 v = Vector3.up;
-        var parent = branches.Last();
+        // Associate each attractor with the single closest node within the pre-defined attraction distance.
         activeAttractors.Clear();
         for (int i = 0; i < attractors.Count; i++)
         {
-            if (Vector3.Distance(attractors[i], parent.end + v * branchLength) < attractionDistance)
+            Branch closest = null;
+            foreach (var b in branches)
             {
-                activeAttractors.Add(i);
+                float d = Vector3.Distance(attractors[i], b.end);
+                if (d < attractionDistance)
+                {
+                    if (closest == null || Vector3.Distance(attractors[i], closest.end) > d)
+                    {
+                        closest = b;
+                    }
+                }
             }
         }
-        if (activeAttractors.Count > 0)
+    }
+
+    void GrowTree()
+    {
+        activeAttractors.Clear();
+        for (int i = extremities.Count - 1; i >= 0; i--)
         {
-            // The direction of the child of branch can be computed as the normalized sum of the normalized directions between the attraction points and the end of branch.
-            foreach (var a in activeAttractors)
+            extremities[i].attractors.Clear();
+            for (int j = 0; j < attractors.Count; j++)
             {
-                v += (attractors[a] - parent.end);
+                if (Vector3.Distance(attractors[j], extremities[i].end) < attractionDistance)
+                {
+                    activeAttractors.Add(j);
+                    extremities[i].attractors.Add(attractors[j]);
+                }
             }
-            v += RandomVector() * randomGrowth;
-            v /= activeAttractors.Count + 1;
-            v.Normalize();
+            if (extremities[i].attractors.Count == 0)
+            {
+                extremities.RemoveAt(i);
+            }
+            else
+            {
+                Grow(extremities[i]);
+            }
         }
-        var branch = new Branch(
+    }
+
+    void Grow(Branch parent)
+    {
+        Vector3 v = new Vector3();
+        // The direction of the child of branch can be computed as the normalized sum of the normalized directions between the attraction points and the end of branch.
+        foreach (var a in parent.attractors)
+        {
+            v += (a - parent.end);
+        }
+        v += RandomVector() * randomGrowth;
+        v /= activeAttractors.Count + 1;
+        v.Normalize();
+        CreateBranch(
             start: parent.end,
             end: parent.end + v * branchLength,
             direction: v,
             parent
         );
-        branches.Add(branch);
         currentStep++;
+    }
+
+    void CreateBranch(Vector3 start, Vector3 end, Vector3 direction, Branch parent)
+    {
+        var branch = new Branch(start, end, direction, parent);
+        branches.Add(branch);
+        extremities.Add(branch);
     }
 
     void Start()
     {
         GenerateAttractors();
         var start = new Vector3(0, -sphereSize + 2, 0);
-        var firstBranch = new Branch(
+        CreateBranch(
             start,
             start + Vector3.up * branchLength,
             Vector3.up,
             null
         );
-        branches.Add(firstBranch);
-        for (int i = 0; i < initialBranches; i++)
-        {
-            Grow();
-        }
+        // for (int i = 0; i < initialBranches; i++)
+        // {
+        //     Grow(branches.Last());
+        // }
     }
 
     void Update()
@@ -120,7 +163,7 @@ public class TreeGenerator : MonoBehaviour
         if (timer >= updateInterval)
         {
             timer = 0f;
-            Grow();
+            GrowTree();
         }
     }
 
@@ -143,8 +186,13 @@ public class TreeGenerator : MonoBehaviour
             Gizmos.DrawSphere(attractors[i], 0.1f);
         }
 
-        // Gizmos.color = new Color(0.4f, 0.4f, 0.4f, 0.4f);
-        // Gizmos.DrawSphere(extremities[0].end, attractionRange);
+        if (branches.Count > 0)
+        {
+            Gizmos.color = new Color(.3f, .3f, .3f, .3f);
+            Gizmos.DrawSphere(branches.Last().end, attractionDistance);
+            Gizmos.color = new Color(.5f, .5f, .5f, .5f);
+            Gizmos.DrawSphere(branches.Last().end, killDistance);
+        }
 
         foreach (Branch b in branches)
         {
