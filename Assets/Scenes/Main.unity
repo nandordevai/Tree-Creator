@@ -168,6 +168,7 @@ MonoBehaviour:
   branchLength: 0.2
   attractionDistance: 5
   updateInterval: 0.1
+  pruneDistance: 0.4
 --- !u!1 &705507993
 GameObject:
   m_ObjectHideFlags: 0

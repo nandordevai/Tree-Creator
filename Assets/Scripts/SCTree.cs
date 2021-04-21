@@ -45,6 +45,7 @@ public class SCTree : MonoBehaviour
         public Node parent;
         public List<Attractor> attractors = new List<Attractor>();
         public bool isTip;
+        public bool active;
 
         float randomGrowth = .1f;
 
@@ -54,6 +55,7 @@ public class SCTree : MonoBehaviour
             this.direction = direction;
             this.parent = parent;
             this.isTip = true;
+            this.active = true;
         }
 
         Vector3 RandomVector()
@@ -113,6 +115,7 @@ public class SCTree : MonoBehaviour
         float distance = 0f;
         foreach (var n in nodes)
         {
+            if (!n.active) continue;
             if ((closest == null)
             || (Vector3.Distance(attractor.position, n.position) < distance))
             {
@@ -128,6 +131,7 @@ public class SCTree : MonoBehaviour
         List<Node> closeNodes = new List<Node>();
         foreach (var n in nodes)
         {
+            if (!n.active) continue;
             if (Vector3.Distance(attractor.position, n.position) < distance)
             {
                 closeNodes.Add(n);
@@ -141,7 +145,15 @@ public class SCTree : MonoBehaviour
         List<Node> newNodes = new List<Node>();
         foreach (var node in nodes)
         {
-            if (node.attractors.Count == 0) continue;
+            if (!node.active)
+            {
+                continue;
+            }
+            else if (node.attractors.Count == 0)
+            {
+                node.active = false;
+                continue;
+            }
             Vector3 direction = node.GetGrowthDirection();
             Node newNode = new Node(
                 node.position + (direction * branchLength),
