@@ -164,10 +164,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 757aba53c662940828a170c3f0771eec, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  numAttractors: 400
+  numAttractors: 800
   branchLength: 0.2
-  attractionDistance: 5
-  updateInterval: 0.1
+  attractionDistance: 2
+  updateInterval: 0.01
   pruneDistance: 0.4
 --- !u!1 &705507993
 GameObject:

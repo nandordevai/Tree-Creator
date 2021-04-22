@@ -1,4 +1,6 @@
-﻿using System.Collections;
+﻿// https://thecodingtrain.com/CodingChallenges/098.1-quadtree.html
+
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
