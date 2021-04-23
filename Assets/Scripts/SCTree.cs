@@ -1,7 +1,4 @@
-﻿// https://thecodingtrain.com/CodingChallenges/098.1-quadtree.html
-
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 public class SCTree : MonoBehaviour
@@ -15,7 +12,6 @@ public class SCTree : MonoBehaviour
 
     List<Attractor> attractors = new List<Attractor>();
     List<Node> nodes = new List<Node>();
-    List<int> activeNodes = new List<int>();
     float timer = 0f;
     List<Attractor> activeAttractors = new List<Attractor>();
 
@@ -46,8 +42,6 @@ public class SCTree : MonoBehaviour
         public Vector3 direction;
         public Node parent;
         public List<Attractor> attractors = new List<Attractor>();
-        public bool isTip;
-        public bool active;
 
         float randomGrowth = .1f;
 
@@ -56,8 +50,6 @@ public class SCTree : MonoBehaviour
             this.position = position;
             this.direction = direction;
             this.parent = parent;
-            this.isTip = true;
-            this.active = true;
         }
 
         Vector3 RandomVector()
@@ -102,7 +94,7 @@ public class SCTree : MonoBehaviour
         activeAttractors.Clear();
         foreach (var a in attractors)
         {
-            Node node = GetClosestNode(a, GetNodesInDistance(a, attractionDistance));
+            Node node = GetClosestNode(a, attractionDistance);
             if (node != null)
             {
                 node.attractors.Add(a);
@@ -111,18 +103,19 @@ public class SCTree : MonoBehaviour
         }
     }
 
-    Node GetClosestNode(Attractor attractor, List<Node> nodes)
+    Node GetClosestNode(Attractor attractor, float maxDistance)
     {
         Node closest = null;
-        float distance = 0f;
+        float minDistance = 0f;
         foreach (var n in nodes)
         {
-            if (!n.active) continue;
-            if ((closest == null)
-            || (Vector3.Distance(attractor.position, n.position) < distance))
+            float currentDistance = Vector3.Distance(attractor.position, n.position);
+            if (currentDistance > maxDistance) continue;
+            if (closest == null
+            || currentDistance < minDistance)
             {
                 closest = n;
-                distance = Vector3.Distance(attractor.position, n.position);
+                minDistance = currentDistance;
             }
         }
         return closest;
@@ -133,7 +126,6 @@ public class SCTree : MonoBehaviour
         List<Node> closeNodes = new List<Node>();
         foreach (var n in nodes)
         {
-            if (!n.active) continue;
             if (Vector3.Distance(attractor.position, n.position) < distance)
             {
                 closeNodes.Add(n);
@@ -147,13 +139,8 @@ public class SCTree : MonoBehaviour
         List<Node> newNodes = new List<Node>();
         foreach (var node in nodes)
         {
-            if (!node.active)
+            if (node.attractors.Count == 0)
             {
-                continue;
-            }
-            else if (node.attractors.Count == 0)
-            {
-                node.active = false;
                 continue;
             }
             Vector3 direction = node.GetGrowthDirection();
@@ -163,7 +150,6 @@ public class SCTree : MonoBehaviour
                 node
             );
             newNodes.Add(newNode);
-            node.isTip = false;
         }
         nodes.AddRange(newNodes);
     }
@@ -193,7 +179,6 @@ public class SCTree : MonoBehaviour
         GenerateAttractors();
         Node rootNode = new Node(new Vector3(0, -size + 2f, 0), Vector3.up, null);
         nodes.Add(rootNode);
-        activeNodes.Add(0);
     }
 
     void Update()
