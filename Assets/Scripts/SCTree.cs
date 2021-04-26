@@ -9,11 +9,14 @@ public class SCTree : MonoBehaviour
     public float attractionDistance = .8f;
     public float updateInterval = 1f;
     public float pruneDistance = .4f;
+    public int radialSubdivisions = 5;
+    public float branchDiameter = .2f;
 
     List<Attractor> attractors = new List<Attractor>();
     List<Node> nodes = new List<Node>();
     float timer = 0f;
     List<Attractor> activeAttractors = new List<Attractor>();
+    Mesh mesh;
 
     public class Attractor
     {
@@ -42,6 +45,7 @@ public class SCTree : MonoBehaviour
         public Vector3 direction;
         public Node parent;
         public List<Attractor> attractors = new List<Attractor>();
+        public bool isTrunk = false;
 
         float randomGrowth = .1f;
 
@@ -82,6 +86,13 @@ public class SCTree : MonoBehaviour
                 return v.normalized;
             }
         }
+    }
+
+
+
+    void Awake()
+    {
+        mesh = new Mesh();
     }
 
     void Associate()
@@ -139,7 +150,7 @@ public class SCTree : MonoBehaviour
         List<Node> newNodes = new List<Node>();
         foreach (var node in nodes)
         {
-            if (node.attractors.Count == 0)
+            if (node.attractors.Count == 0 && !node.isTrunk)
             {
                 continue;
             }
@@ -149,6 +160,7 @@ public class SCTree : MonoBehaviour
                 direction,
                 node
             );
+            if (node.attractors.Count == 0) node.isTrunk = true;
             newNodes.Add(newNode);
         }
         nodes.AddRange(newNodes);
@@ -174,10 +186,50 @@ public class SCTree : MonoBehaviour
         }
     }
 
+    void BuildMesh()
+    {
+        mesh.Clear();
+        Vector3[] vertices = new Vector3[nodes.Count * radialSubdivisions];
+        int[] triangles = new int[(nodes.Count - 1) * 6];
+        int vertexId = 0;
+        int faceId = 0;
+        Node node;
+        Quaternion q;
+        Vector3 pos;
+        for (int i = 0; i < nodes.Count; i++)
+        {
+            vertexId = radialSubdivisions * i;
+            node = nodes[i];
+            q = Quaternion.FromToRotation(Vector3.up, node.direction);
+            for (int j = 0; j < radialSubdivisions; j++)
+            {
+                float alpha = j * Mathf.PI * 2 / radialSubdivisions;
+                pos = new Vector3(
+                    branchDiameter * Mathf.Cos(alpha),
+                    0,
+                    branchDiameter * Mathf.Sin(alpha)
+                );
+                pos = q * pos;
+                pos += node.position;
+                vertices[vertexId + j] = pos - transform.position;
+            }
+        }
+        for (int i = 0; i < nodes.Count - 1; i++)
+        {
+            node = nodes[i];
+            faceId = radialSubdivisions * i * 6;
+            for (int j = 0; j < radialSubdivisions; j++)
+            {
+                // triangles[faceId + j] = vertices[i * radialSubdivisions + j];
+            }
+        }
+    }
+
     void Start()
     {
         GenerateAttractors();
-        Node rootNode = new Node(new Vector3(0, -size + 2f, 0), Vector3.up, null);
+        Node rootNode = new Node(new Vector3(0, -size - 2f, 0), Vector3.up, null);
+        rootNode.isTrunk = true;
         nodes.Add(rootNode);
     }
 
@@ -191,6 +243,7 @@ public class SCTree : MonoBehaviour
             Associate();
             Grow();
             Prune();
+            BuildMesh();
             timer = 0f;
         }
     }
