@@ -1,6 +1,8 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 
+[RequireComponent(typeof(MeshFilter))]
+[RequireComponent(typeof(MeshRenderer))]
 public class SCTree : MonoBehaviour
 {
     public int numAttractors = 400;
@@ -17,6 +19,7 @@ public class SCTree : MonoBehaviour
     float timer = 0f;
     List<Attractor> activeAttractors = new List<Attractor>();
     Mesh mesh;
+    MeshFilter filter;
 
     public class Attractor
     {
@@ -190,9 +193,8 @@ public class SCTree : MonoBehaviour
     {
         mesh.Clear();
         Vector3[] vertices = new Vector3[nodes.Count * radialSubdivisions];
-        int[] triangles = new int[(nodes.Count - 1) * 6];
+        int[] triangles = new int[(nodes.Count - 1) * 6 * radialSubdivisions];
         int vertexId = 0;
-        int faceId = 0;
         Node node;
         Quaternion q;
         Vector3 pos;
@@ -214,15 +216,26 @@ public class SCTree : MonoBehaviour
                 vertices[vertexId + j] = pos - transform.position;
             }
         }
+        int t = 0;
         for (int i = 0; i < nodes.Count - 1; i++)
         {
-            node = nodes[i];
-            faceId = radialSubdivisions * i * 6;
+            int nodeStart = radialSubdivisions * i;
             for (int j = 0; j < radialSubdivisions; j++)
             {
-                // triangles[faceId + j] = vertices[i * radialSubdivisions + j];
+                triangles[t] = nodeStart + j;
+                triangles[t + 1] = nodeStart + j + radialSubdivisions;
+                triangles[t + 2] = nodeStart + (j + 1) % radialSubdivisions;
+                triangles[t + 3] = nodeStart + (j + 1) % radialSubdivisions;
+                triangles[t + 4] = nodeStart + j + radialSubdivisions;
+                triangles[t + 5] = nodeStart + (j + 1) % radialSubdivisions + radialSubdivisions;
+                t += 6;
             }
         }
+        mesh.vertices = vertices;
+        mesh.triangles = triangles;
+        mesh.RecalculateNormals();
+        filter = GetComponent<MeshFilter>();
+        filter.mesh = mesh;
     }
 
     void Start()
@@ -243,7 +256,7 @@ public class SCTree : MonoBehaviour
             Associate();
             Grow();
             Prune();
-            BuildMesh();
+            // BuildMesh();
             timer = 0f;
         }
     }
