@@ -77,8 +77,7 @@ public class SCTree : MonoBehaviour
 
         public void SetSize(float initialSize)
         {
-            // branchSize = branchDiameter * ((node.maxChildrenDepth / 10) + 1);
-            size = initialSize * ((maxChildrenDepth / 10) + 1);
+            size = (Mathf.Pow(maxChildrenDepth, 1.1f) / 500) + initialSize;
         }
 
         Vector3 RandomVector()
