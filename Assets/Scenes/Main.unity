@@ -172,8 +172,7 @@ MonoBehaviour:
   updateInterval: 0.01
   pruneDistance: 0.4
   radialSubdivisions: 6
-  branchDiameter: 0.04
-  maxNodes: 0
+  branchDiameter: 0.02
   initialNodeDistance: 2
 --- !u!23 &704728830
 MeshRenderer:

@@ -13,7 +13,6 @@ public class SCTree : MonoBehaviour
     public float pruneDistance = .4f;
     public int radialSubdivisions = 5;
     public float branchDiameter = .2f;
-    public int maxNodes = 10;
     public float initialNodeDistance = 2f;
 
     List<Attractor> attractors = new List<Attractor>();
@@ -52,6 +51,8 @@ public class SCTree : MonoBehaviour
         public List<Attractor> attractors = new List<Attractor>();
         public bool isTrunk = false;
         public int vertexStart;
+        public int maxChildrenDepth = 0;
+        public float size;
 
         float randomGrowth = .1f;
 
@@ -60,6 +61,24 @@ public class SCTree : MonoBehaviour
             this.position = position;
             this.direction = direction;
             this.parent = parent;
+        }
+
+        public void IncreaseChildrenDepth(int d)
+        {
+            if (d > maxChildrenDepth)
+            {
+                maxChildrenDepth = d;
+            }
+            if (parent != null)
+            {
+                parent.IncreaseChildrenDepth(d + 1);
+            }
+        }
+
+        public void SetSize(float initialSize)
+        {
+            // branchSize = branchDiameter * ((node.maxChildrenDepth / 10) + 1);
+            size = initialSize * ((maxChildrenDepth / 10) + 1);
         }
 
         Vector3 RandomVector()
@@ -165,6 +184,7 @@ public class SCTree : MonoBehaviour
                 node
             );
             newNodes.Add(newNode);
+            node.IncreaseChildrenDepth(1);
             if (node.isTrunk)
             {
                 node.isTrunk = false;
@@ -213,14 +233,15 @@ public class SCTree : MonoBehaviour
         foreach (var node in nodes)
         {
             node.vertexStart = vIdx;
+            node.SetSize(branchDiameter);
             q = Quaternion.FromToRotation(Vector3.up, node.direction);
             for (int i = 0; i < radialSubdivisions; i++)
             {
                 float alpha = i * Mathf.PI * 2 / radialSubdivisions;
                 pos = new Vector3(
-                    branchDiameter * Mathf.Cos(alpha),
+                    node.size * Mathf.Cos(alpha),
                     0,
-                    branchDiameter * Mathf.Sin(alpha)
+                    node.size * Mathf.Sin(alpha)
                 );
                 pos = q * pos;
                 pos += node.position;
@@ -273,7 +294,7 @@ public class SCTree : MonoBehaviour
 
     void Update()
     {
-        if (attractors.Count == 0 || (maxNodes > 0 && nodes.Count >= maxNodes)) enabled = false;
+        if (attractors.Count == 0) enabled = false;
 
         timer += Time.deltaTime;
         if (timer >= updateInterval)
