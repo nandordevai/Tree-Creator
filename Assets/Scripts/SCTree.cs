@@ -53,6 +53,7 @@ public class SCTree : MonoBehaviour
         public int vertexStart;
         public int maxChildrenDepth = 0;
         public float size;
+        public bool isGrowing = true;
 
         float randomGrowth = .1f;
 
@@ -167,11 +168,13 @@ public class SCTree : MonoBehaviour
         return closeNodes;
     }
 
+    // TODO: set trunk to false when not needed anymore
     void Grow()
     {
         List<Node> newNodes = new List<Node>();
         foreach (var node in nodes)
         {
+            node.isGrowing = false;
             if (node.attractors.Count == 0 && !node.isTrunk)
             {
                 continue;
@@ -243,7 +246,18 @@ public class SCTree : MonoBehaviour
                     node.size * Mathf.Sin(alpha)
                 );
                 pos = q * pos;
-                pos += node.position;
+                if (node.parent != null && node.isGrowing)
+                {
+                    pos += Vector3.Lerp(
+                        node.parent.position,
+                        node.position,
+                        timer / updateInterval
+                    );
+                }
+                else
+                {
+                    pos += node.position;
+                }
                 vertices[vIdx] = pos - transform.position;
                 vIdx++;
             }
@@ -301,9 +315,9 @@ public class SCTree : MonoBehaviour
             Associate();
             Grow();
             Prune();
-            BuildMesh();
             timer = 0f;
         }
+        BuildMesh();
     }
 
     void OnDrawGizmos()
