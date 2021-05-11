@@ -3,7 +3,7 @@ using UnityEngine;
 
 [RequireComponent(typeof(MeshFilter))]
 [RequireComponent(typeof(MeshRenderer))]
-public class SCTree : MonoBehaviour
+public partial class SCTree : MonoBehaviour
 {
     public int numAttractors = 400;
     public float branchLength = .2f;
@@ -15,103 +15,13 @@ public class SCTree : MonoBehaviour
     public float branchDiameter = .2f;
     public float initialNodeDistance = 2f;
 
-    List<Attractor> attractors = new List<Attractor>();
+    List<Vector3> attractors = new List<Vector3>();
     List<Node> nodes = new List<Node>();
     float timer = 0f;
-    List<Attractor> activeAttractors = new List<Attractor>();
+    List<Vector3> activeAttractors = new List<Vector3>();
     Mesh mesh;
     MeshFilter filter;
-
-    public class Attractor
-    {
-        public Vector3 position;
-
-        public Attractor()
-        {
-            float alpha = Random.Range(0, Mathf.PI);
-            float theta = Random.Range(0, Mathf.PI * 2f);
-            Vector3 v = new Vector3(
-                Mathf.Cos(theta) * Mathf.Sin(alpha),
-                Mathf.Sin(theta) * Mathf.Sin(alpha),
-                Mathf.Cos(alpha)
-            );
-            float d = Random.Range(0, 1f);
-            d = Mathf.Pow(Mathf.Sin(d * Mathf.PI / 2f), 0.8f);
-            d *= SCTree.size;
-            v *= d;
-            this.position = v;
-        }
-    }
-
-    public class Node
-    {
-        public Vector3 position;
-        public Vector3 direction;
-        public Node parent;
-        public List<Attractor> attractors = new List<Attractor>();
-        public bool isTrunk = false;
-        public int vertexStart;
-        public int maxChildrenDepth = 0;
-        public float size;
-        public bool isGrowing = true;
-
-        float randomGrowth = .1f;
-
-        public Node(Vector3 position, Vector3 direction, Node parent)
-        {
-            this.position = position;
-            this.direction = direction;
-            this.parent = parent;
-        }
-
-        public void IncreaseChildrenDepth(int d)
-        {
-            if (d > maxChildrenDepth)
-            {
-                maxChildrenDepth = d;
-            }
-            if (parent != null)
-            {
-                parent.IncreaseChildrenDepth(d + 1);
-            }
-        }
-
-        public void SetSize(float initialSize)
-        {
-            size = (Mathf.Pow(maxChildrenDepth, 1.1f) / 500) + initialSize;
-        }
-
-        Vector3 RandomVector()
-        {
-            float alpha = Random.Range(0, Mathf.PI);
-            float theta = Random.Range(0, Mathf.PI * 2f);
-            Vector3 v = new Vector3(
-                Mathf.Cos(theta) * Mathf.Sin(alpha),
-                Mathf.Sin(theta) * Mathf.Sin(alpha),
-                Mathf.Cos(alpha)
-            );
-            return v;
-        }
-
-        public Vector3 GetGrowthDirection()
-        {
-            if (attractors.Count == 0)
-            {
-                return direction;
-            }
-            else
-            {
-                Vector3 v = Vector3.zero;
-                foreach (var a in attractors)
-                {
-                    v += a.position - position;
-                }
-                v += RandomVector() * randomGrowth;
-                v /= attractors.Count + 1;
-                return v.normalized;
-            }
-        }
-    }
+    Octree octree = new Octree(new BoundingBox(Vector3.zero, size, size, size));
 
     void Awake()
     {
@@ -137,13 +47,15 @@ public class SCTree : MonoBehaviour
         }
     }
 
-    Node GetClosestNode(Attractor attractor, float maxDistance)
+    Node GetClosestNode(Vector3 attractor, float maxDistance)
     {
         Node closest = null;
         float minDistance = 0f;
-        foreach (var n in nodes)
+        List<Node> qNodes = new List<Node>();
+        octree.Query(new BoundingBox(attractor, maxDistance), ref qNodes);
+        foreach (var n in qNodes)
         {
-            float currentDistance = Vector3.Distance(attractor.position, n.position);
+            float currentDistance = Vector3.Distance(attractor, n.position);
             if (currentDistance > maxDistance) continue;
             if (closest == null
             || currentDistance < minDistance)
@@ -155,12 +67,14 @@ public class SCTree : MonoBehaviour
         return closest;
     }
 
-    List<Node> GetNodesInDistance(Attractor attractor, float distance)
+    List<Node> GetNodesInDistance(Vector3 attractor, float distance)
     {
         List<Node> closeNodes = new List<Node>();
-        foreach (var n in nodes)
+        List<Node> qNodes = new List<Node>();
+        octree.Query(new BoundingBox(attractor, distance), ref qNodes);
+        foreach (var n in qNodes)
         {
-            if (Vector3.Distance(attractor.position, n.position) < distance)
+            if (Vector3.Distance(attractor, n.position) < distance)
             {
                 closeNodes.Add(n);
             }
@@ -186,6 +100,7 @@ public class SCTree : MonoBehaviour
                 node
             );
             newNodes.Add(newNode);
+            octree.Insert(newNode);
             node.IncreaseChildrenDepth(1);
             if (node.isTrunk)
             {
@@ -200,7 +115,18 @@ public class SCTree : MonoBehaviour
     {
         for (var i = 0; i < numAttractors; i++)
         {
-            attractors.Add(new Attractor());
+            float alpha = Random.Range(0, Mathf.PI);
+            float theta = Random.Range(0, Mathf.PI * 2f);
+            Vector3 v = new Vector3(
+                Mathf.Cos(theta) * Mathf.Sin(alpha),
+                Mathf.Sin(theta) * Mathf.Sin(alpha),
+                Mathf.Cos(alpha)
+            );
+            float d = Random.Range(0, 1f);
+            d = Mathf.Pow(Mathf.Sin(d * Mathf.PI / 2f), 0.8f);
+            d *= size;
+            v *= d;
+            attractors.Add(v);
         }
     }
 
@@ -325,13 +251,13 @@ public class SCTree : MonoBehaviour
         foreach (var a in attractors)
         {
             Gizmos.color = Color.white;
-            Gizmos.DrawSphere(a.position, .05f);
+            Gizmos.DrawSphere(a, .05f);
         }
 
         foreach (var a in activeAttractors)
         {
             Gizmos.color = Color.red;
-            Gizmos.DrawSphere(a.position, .05f);
+            Gizmos.DrawSphere(a, .05f);
         }
 
         foreach (var n in nodes)

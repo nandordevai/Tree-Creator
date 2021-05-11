@@ -169,7 +169,7 @@ MonoBehaviour:
   numAttractors: 800
   branchLength: 0.2
   attractionDistance: 2
-  updateInterval: 0.01
+  updateInterval: 0.5
   pruneDistance: 0.4
   radialSubdivisions: 6
   branchDiameter: 0.02
