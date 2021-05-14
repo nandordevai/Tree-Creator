@@ -52,7 +52,6 @@ public class VertexTest : MonoBehaviour
                 t += 6;
             }
         }
-        // Debug.Log(String.Join(",", triangles));
         filter = GetComponent<MeshFilter>();
         mesh.vertices = vertices;
         mesh.triangles = triangles;

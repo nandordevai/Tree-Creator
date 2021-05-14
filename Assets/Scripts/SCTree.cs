@@ -21,11 +21,12 @@ public partial class SCTree : MonoBehaviour
     List<Vector3> activeAttractors = new List<Vector3>();
     Mesh mesh;
     MeshFilter filter;
-    Octree octree = new Octree(new BoundingBox(Vector3.zero, size, size, size));
+    Octree octree;
 
     void Awake()
     {
         mesh = new Mesh();
+        octree = new Octree(new BoundingBox(transform.position, size, size, size));
     }
 
     void Associate()
@@ -126,6 +127,7 @@ public partial class SCTree : MonoBehaviour
             d = Mathf.Pow(Mathf.Sin(d * Mathf.PI / 2f), 0.8f);
             d *= size;
             v *= d;
+            v += transform.localPosition;
             attractors.Add(v);
         }
     }
@@ -184,7 +186,7 @@ public partial class SCTree : MonoBehaviour
                 {
                     pos += node.position;
                 }
-                vertices[vIdx] = pos - transform.position;
+                vertices[vIdx] = pos - transform.localPosition;
                 vIdx++;
             }
         }
@@ -226,7 +228,11 @@ public partial class SCTree : MonoBehaviour
     void Start()
     {
         GenerateAttractors();
-        Node rootNode = new Node(new Vector3(0, -size - initialNodeDistance, 0), Vector3.up, null);
+        Node rootNode = new Node(
+            new Vector3(0, -size - initialNodeDistance, 0) + transform.localPosition,
+            Vector3.up,
+            null
+        );
         rootNode.isTrunk = true;
         nodes.Add(rootNode);
     }
