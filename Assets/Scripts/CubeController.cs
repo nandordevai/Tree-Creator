@@ -21,8 +21,8 @@ public class CubeController : MonoBehaviour
         controller.TryGetFeatureValue(CommonUsages.deviceRotation, out rotation);
         pointAngle = rotation.eulerAngles.y;
         Vector3 pos = transform.position;
-        pos.x = 5 * Mathf.Sin(pointAngle * Mathf.Deg2Rad);
-        pos.z = 5 * Mathf.Cos(pointAngle * Mathf.Deg2Rad);
+        pos.x = 20 * Mathf.Sin(pointAngle * Mathf.Deg2Rad);
+        pos.z = 20 * Mathf.Cos(pointAngle * Mathf.Deg2Rad);
         transform.position = pos;
     }
 }

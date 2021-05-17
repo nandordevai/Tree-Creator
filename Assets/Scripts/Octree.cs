@@ -5,7 +5,7 @@ public class Octree
 {
     BoundingBox boundary;
     int capacity;
-    List<Node> nodes = new List<Node>();
+    List<Node> points = new List<Node>();
     bool divided = false;
     Octree une = null;
     Octree unw = null;
@@ -25,9 +25,9 @@ public class Octree
     public bool Insert(Node node)
     {
         if (!boundary.Contains(node.position)) return false;
-        if (nodes.Count < capacity)
+        if (points.Count < capacity)
         {
-            nodes.Add(node);
+            points.Add(node);
         }
         else
         {
@@ -145,8 +145,11 @@ public class Octree
 
     public void Query(BoundingBox range, ref List<Node> found)
     {
-        if (!boundary.Intersects(range)) return;
-        foreach (var n in nodes)
+        if (!boundary.Intersects(range))
+        {
+            return;
+        }
+        foreach (var n in points)
         {
             if (range.Contains(n.position))
             {
@@ -168,7 +171,7 @@ public class Octree
 
     public void Show()
     {
-        foreach (var n in nodes)
+        foreach (var n in points)
         {
             GameObject s = GameObject.CreatePrimitive(PrimitiveType.Sphere);
             s.transform.localScale = new Vector3(.05f, .05f, .05f);

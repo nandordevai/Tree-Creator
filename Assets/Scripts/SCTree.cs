@@ -14,6 +14,8 @@ public partial class SCTree : MonoBehaviour
     public int radialSubdivisions = 5;
     public float branchDiameter = .2f;
     public float initialNodeDistance = 2f;
+    public GameObject growthArea;
+    public float growthAreaSize = 2f;
 
     List<Vector3> attractors = new List<Vector3>();
     List<Node> nodes = new List<Node>();
@@ -21,12 +23,14 @@ public partial class SCTree : MonoBehaviour
     List<Vector3> activeAttractors = new List<Vector3>();
     Mesh mesh;
     MeshFilter filter;
-    Octree octree;
+    Octree nodeOctree;
+    Octree attractorOctree;
 
     void Awake()
     {
         mesh = new Mesh();
-        octree = new Octree(new BoundingBox(transform.position, size, size, size));
+        nodeOctree = new Octree(new BoundingBox(transform.position, size));
+        attractorOctree = new Octree(new BoundingBox(transform.position, size));
     }
 
     void Associate()
@@ -37,13 +41,18 @@ public partial class SCTree : MonoBehaviour
             n.attractors.Clear();
         }
         activeAttractors.Clear();
-        foreach (var a in attractors)
+        List<Node> growthAttractors = new List<Node>();
+        attractorOctree.Query(
+            new BoundingBox(growthArea.transform.position, growthAreaSize),
+            ref growthAttractors
+        );
+        foreach (var a in growthAttractors)
         {
-            Node node = GetClosestNode(a, attractionDistance);
+            Node node = GetClosestNode(a.position, attractionDistance);
             if (node != null)
             {
-                node.attractors.Add(a);
-                activeAttractors.Add(a);
+                node.attractors.Add(a.position);
+                activeAttractors.Add(a.position);
             }
         }
     }
@@ -53,7 +62,7 @@ public partial class SCTree : MonoBehaviour
         Node closest = null;
         float minDistance = 0f;
         List<Node> qNodes = new List<Node>();
-        octree.Query(new BoundingBox(attractor, maxDistance), ref qNodes);
+        nodeOctree.Query(new BoundingBox(attractor, maxDistance), ref qNodes);
         foreach (var n in qNodes)
         {
             float currentDistance = Vector3.Distance(attractor, n.position);
@@ -72,7 +81,7 @@ public partial class SCTree : MonoBehaviour
     {
         List<Node> closeNodes = new List<Node>();
         List<Node> qNodes = new List<Node>();
-        octree.Query(new BoundingBox(attractor, distance), ref qNodes);
+        nodeOctree.Query(new BoundingBox(attractor, distance), ref qNodes);
         foreach (var n in qNodes)
         {
             if (Vector3.Distance(attractor, n.position) < distance)
@@ -101,7 +110,7 @@ public partial class SCTree : MonoBehaviour
                 node
             );
             newNodes.Add(newNode);
-            octree.Insert(newNode);
+            nodeOctree.Insert(newNode);
             node.IncreaseChildrenDepth(1);
             if (node.isTrunk)
             {
@@ -127,8 +136,9 @@ public partial class SCTree : MonoBehaviour
             d = Mathf.Pow(Mathf.Sin(d * Mathf.PI / 2f), 0.8f);
             d *= size;
             v *= d;
-            v += transform.localPosition;
+            v += transform.position;
             attractors.Add(v);
+            attractorOctree.Insert(new Node(v, Vector3.zero, null));
         }
     }
 
