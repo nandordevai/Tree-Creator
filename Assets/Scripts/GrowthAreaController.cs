@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.XR;
 
-public class CubeController : MonoBehaviour
+public class GrowthAreaController : MonoBehaviour
 {
     InputDevice controller;
-    float pointAngle;
+    float pointAngleH;
 
     void Start()
     {
@@ -19,10 +19,10 @@ public class CubeController : MonoBehaviour
     {
         Quaternion rotation;
         controller.TryGetFeatureValue(CommonUsages.deviceRotation, out rotation);
-        pointAngle = rotation.eulerAngles.y;
-        Vector3 pos = transform.position;
-        pos.x = 20 * Mathf.Sin(pointAngle * Mathf.Deg2Rad);
-        pos.z = 20 * Mathf.Cos(pointAngle * Mathf.Deg2Rad);
-        transform.position = pos;
+        Vector3 v = transform.position;
+        v.x = 20 * Mathf.Sin(rotation.eulerAngles.y * Mathf.Deg2Rad);
+        v.y = -20 * Mathf.Sin(rotation.eulerAngles.x * Mathf.Deg2Rad);
+        v.z = 20 * Mathf.Cos(rotation.eulerAngles.y * Mathf.Deg2Rad);
+        transform.position = v;
     }
 }

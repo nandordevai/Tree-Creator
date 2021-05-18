@@ -7,7 +7,7 @@ public partial class SCTree : MonoBehaviour
 {
     public int numAttractors = 400;
     public float branchLength = .2f;
-    public static float size = 5f;
+    public static float radius = 5f;
     public float attractionDistance = .8f;
     public float updateInterval = 1f;
     public float pruneDistance = .4f;
@@ -24,13 +24,11 @@ public partial class SCTree : MonoBehaviour
     Mesh mesh;
     MeshFilter filter;
     Octree nodeOctree;
-    Octree attractorOctree;
 
     void Awake()
     {
         mesh = new Mesh();
-        nodeOctree = new Octree(new BoundingBox(transform.position, size));
-        attractorOctree = new Octree(new BoundingBox(transform.position, size));
+        nodeOctree = new Octree(new BoundingBox(transform.position, radius));
     }
 
     void Associate()
@@ -41,18 +39,15 @@ public partial class SCTree : MonoBehaviour
             n.attractors.Clear();
         }
         activeAttractors.Clear();
-        List<Node> growthAttractors = new List<Node>();
-        attractorOctree.Query(
-            new BoundingBox(growthArea.transform.position, growthAreaSize),
-            ref growthAttractors
-        );
-        foreach (var a in growthAttractors)
+        BoundingBox growthBox = new BoundingBox(growthArea.transform.position, growthAreaSize);
+        foreach (var a in attractors)
         {
-            Node node = GetClosestNode(a.position, attractionDistance);
+            if (!growthBox.Contains(a)) continue;
+            Node node = GetClosestNode(a, attractionDistance);
             if (node != null)
             {
-                node.attractors.Add(a.position);
-                activeAttractors.Add(a.position);
+                node.attractors.Add(a);
+                activeAttractors.Add(a);
             }
         }
     }
@@ -134,11 +129,10 @@ public partial class SCTree : MonoBehaviour
             );
             float d = Random.Range(0, 1f);
             d = Mathf.Pow(Mathf.Sin(d * Mathf.PI / 2f), 0.8f);
-            d *= size;
+            d *= radius;
             v *= d;
             v += transform.position;
             attractors.Add(v);
-            attractorOctree.Insert(new Node(v, Vector3.zero, null));
         }
     }
 
@@ -239,7 +233,7 @@ public partial class SCTree : MonoBehaviour
     {
         GenerateAttractors();
         Node rootNode = new Node(
-            new Vector3(0, -size - initialNodeDistance, 0) + transform.localPosition,
+            new Vector3(0, -radius - initialNodeDistance, 0) + transform.localPosition,
             Vector3.up,
             null
         );
