@@ -7,7 +7,7 @@ public class SCTree : MonoBehaviour
 {
     public int numAttractors = 400;
     public float branchLength = .2f;
-    public static float size = 5f;
+    public static float size = 7f;
     public float attractionDistance = .8f;
     public float updateInterval = 1f;
     public float pruneDistance = .4f;
@@ -26,20 +26,20 @@ public class SCTree : MonoBehaviour
     {
         public Vector3 position;
 
-        public Attractor()
+        public Attractor(Vector3 origin)
         {
             float alpha = Random.Range(0, Mathf.PI);
             float theta = Random.Range(0, Mathf.PI * 2f);
             Vector3 v = new Vector3(
                 Mathf.Cos(theta) * Mathf.Sin(alpha),
-                Mathf.Sin(theta) * Mathf.Sin(alpha),
+                Mathf.Sin(theta) * Mathf.Sin(alpha) * .35f,
                 Mathf.Cos(alpha)
             );
             float d = Random.Range(0, 1f);
             d = Mathf.Pow(Mathf.Sin(d * Mathf.PI / 2f), 0.8f);
             d *= SCTree.size;
             v *= d;
-            this.position = v;
+            this.position = v + origin;
         }
     }
 
@@ -200,7 +200,9 @@ public class SCTree : MonoBehaviour
     {
         for (var i = 0; i < numAttractors; i++)
         {
-            attractors.Add(new Attractor());
+            attractors.Add(new Attractor(
+                transform.position + new Vector3(0, initialNodeDistance, 0)
+            ));
         }
     }
 
@@ -258,7 +260,7 @@ public class SCTree : MonoBehaviour
                 {
                     pos += node.position;
                 }
-                vertices[vIdx] = pos - transform.position;
+                vertices[vIdx] = pos + transform.position;
                 vIdx++;
             }
         }
@@ -299,8 +301,10 @@ public class SCTree : MonoBehaviour
 
     void Start()
     {
+        // DEBUG:
+        UnityEditor.SceneView.FocusWindowIfItsOpen(typeof(UnityEditor.SceneView));
         GenerateAttractors();
-        Node rootNode = new Node(new Vector3(0, -size - initialNodeDistance, 0), Vector3.up, null);
+        Node rootNode = new Node(Vector3.zero, Vector3.up, null);
         rootNode.isTrunk = true;
         nodes.Add(rootNode);
     }
